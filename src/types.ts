@@ -1,10 +1,9 @@
 /** Neutral forward documents keep the authenticated outer scope separate from displayed sender claims. */
-import type {Branded} from '@deepseek-ai/dsh-brand'
 import type {AccountRef,ConversationScope,ForwardId,MessageId,MessagePart,UserId,DeliveryReceipt,AttachmentId} from 'dsh-im-kit'
 import type {NativeStoredOriginal} from 'dsh-media-kit/dsh-attachments'
 import type {OriginalMedia} from 'dsh-media-kit'
-/** Durable prepared-output identity; it can be carried by an ordinary IM forward part. */
-export type PreparedId=Branded<'forward.prepared'>
+import type {PreparedId} from './data.ts'
+export type {PreparedId,PreparedView,ForwardPreview,RuntimeStatus,OriginalView} from './data.ts'
 /** Original segments plus inlined forwarded nodes in their original order. */
 export type ForwardPart=MessagePart|{readonly type:'inline-forward';readonly node:ForwardNode}
 /** Names and user IDs are source claims, never an authenticated caller identity. */
@@ -12,7 +11,7 @@ export interface ForwardNode{readonly claimedSender:{readonly id?:UserId;readonl
 /** The requesting Host binds all four identity dimensions before calling a reader. */
 export interface ReadRequest{readonly scope:ConversationScope;readonly rootMessageId:MessageId;readonly resourceId:ForwardId}
 /** Partial resolution remains explicit and never authorizes another conversation. */
-export type ForwardFailure='invalid'|'capacity'|'cancelled'|'closed'|'unavailable'|'not-found'|'permission-denied'|'malformed'|'rejected'|'timeout'|'offline'|'cycle'|'depth'|'ambiguous'|'incomplete'|'conflict'|'storage'|'media-unavailable'|'media-failed'
+export type ForwardFailure='invalid'|'capacity'|'busy'|'cancelled'|'closed'|'unavailable'|'not-found'|'permission-denied'|'malformed'|'rejected'|'timeout'|'offline'|'cycle'|'depth'|'ambiguous'|'incomplete'|'conflict'|'storage'|'media-unavailable'|'media-failed'
 /** One provider result; the optional raw response is retained as untrusted source data. */
 export type ResourceResult={readonly status:'resolved';readonly nodes:readonly ForwardNode[];readonly raw?:unknown}|{readonly status:'failed';readonly code:ForwardFailure}
 /** An installed provider may only look up cached messages in the exact authorized scope. */
@@ -39,5 +38,3 @@ export interface ForwardDocument extends ReadRequest{readonly resources:readonly
 export interface ForwardAsset{readonly originalId:AttachmentId;readonly stored:NativeStoredOriginal}
 /** Immutable prepared content remains available after provider or process restart. */
 export interface PreparedForward{readonly version:1;readonly id:PreparedId;readonly scope:ConversationScope;readonly operationId:string;readonly requestFingerprint:string;readonly fingerprint:string;readonly document:ForwardDocument;readonly assets:readonly ForwardAsset[];readonly createdAt:number}
-/** Bounded presentation is explicitly a preview; original structured nodes remain in the document. */
-export interface ForwardPreview{readonly text:string;readonly truncated:boolean;readonly media:readonly {readonly kind:string;readonly attachmentId:AttachmentId}[];readonly complete:boolean}

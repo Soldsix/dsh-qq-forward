@@ -1,5 +1,5 @@
 ---
-description: "Retain complete scoped forward graphs and original bytes for independent DSH messaging consumers."
+description: "Read nested QQ forwards, retain original media and compose durable delivery in a DSH profile."
 kind: "package-bundle"
 ---
 # dsh-qq-forward
@@ -8,52 +8,79 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This local candidate contributes a protocol-neutral Host service for scoped recursive forwards. It retains sender display claims, nested resources, quoted-message associations and exact media originals. Preparation is durable and deduplicated by scope plus operation ID; sending returns classified receipts without automatic retries. It adds no model, persona, automatic reply or QQ login. Protocol adapters and native owner controls are still under development; this repository is not a published release.
+Read nested forwards together with their quoted messages, keep exact original media, and preview retained output in the native plugin page. Add the bundle to an isolated DSH profile and enable the core explicitly. Optional OneBot and durable-job adapters reuse existing transport and task services. No model, automatic reply, login or background schedule is created.
 
+## Table of Contents
+
+- [Use this package](#use-this-package)
+- [Configuration and owner page](#configuration)
+- [Understand the implementation](#implementation)
+- [Verification](#verification)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#limitations)
+
+-----
+
+<a id="use-this-package"></a>
 ## Use this package
 
-The target is DSH 0.2.2-rc.1 with Cordis 4.1. The published DSH Host requires Node >=24.9.0. This bundle has no application binary. The profile must supply storageDomain and attachments; media originals require an installed imMedia provider. The core resolves optional media at operation time, so a provider installed later is usable without recreating the core.
+Use DSH 0.2.2-rc.1 and Cordis 4.1. The published Host requires Node >=24.9.0. This package has no application binary; supported applications launch through dsh profiles. Install the reviewed tarball into your isolated profile with `dsh plugin --profile <profile> add <archive> --ignore-scripts`. Native SDK and Web tests exercise this installation path.
 
-The disabled bundle entry is qq-forward. Enable it explicitly in an isolated profile. Config resolves capacities and validates namespace, record-retention and media-budget relationships. Supported application startup belongs to dsh profiles only. Do not load an undeclared production profile for testing.
+The bundle inserts qq-forward with enabled=false and a separate qq-forward-control entry. Enable qq-forward in cordis.patch.yml or the native owner page. The profile supplies storageDomain and attachments. Original acquisition requires a scoped imMedia provider; the core resolves that optional service when an operation starts. Installing the core alone does not connect to QQ.
 
-Trusted Host consumers register one ForwardProvider per exact account. read accepts a complete conversation scope, admitted outer-message ID and resource ID. Source adapters own authorization; a forwarded name or user ID never grants access. Quote lookup must use admitted cached messages in that exact conversation, without global get_msg lookup or republishing old messages.
+For OneBot dispatch, install dsh-qq-onebot 0.4.0-development separately and mount dsh-qq-forward/onebot with enabled=true. The adapter requires existing imForward and qqOnebot services. It reads only admitted forward grants and cached quoted messages in the exact conversation; it never performs global get_msg lookup. Removing the adapter leaves the separately owned connection running.
 
-The result preserves every resolved node plus explicit missing, ambiguous, cyclic and limited edges. complete is false whenever any requested edge is unresolved. Equal resource IDs under different outer-message grants remain distinct. Shorter reference paths relax depth limits without repeating successful resource reads. Oversized source bodies fail intact rather than being truncated.
+For durable delivery, install dsh-job-delivery 0.2.0-development separately and mount dsh-qq-forward/job-delivery with enabled=true. Its provider and maxConcurrent fields select the shared producer registration. imForwardJobs.submit accepts scope, actorId, operationId and preparedId, then checkpoints one retained forward reference. The queue preserves accepted receipts across restarts and requires explicit reconciliation of uncertain outcomes.
 
-prepare accepts source IDs or generated nodes, an authenticated destination and a stable operationId. It refuses incomplete graphs and arbitrary native storage receipts. The same operation and input share one preparation; changed input conflicts. Referenced media are copied through the native verbatim attachment API once and retained with the exact graph. Reopening native storage does not fetch sources, regenerate content or replay sends.
+-----
 
-sendRetained accepts a prepared ID in its exact destination scope and reads verified original bytes. It makes one sender attempt per invocation. A missing sender, refused scope or pre-dispatch capacity failure remains a failure; an exception after invoking a sender remains uncertain. A durable delivery consumer must deduplicate operation IDs and reconcile uncertain outcomes; this core alone does not guarantee exactly-once sending.
+<a id="configuration"></a>
+## Configuration and owner page
 
-renderPreview is a bounded presentation helper, not a replacement for source data. It labels unverified senders, resource boundaries and unresolved references, counts Unicode code points and marks omissions. It returns opaque media references in encounter order. Any material exposed to a model must be recorded by the consuming plugin in its own DSH session events.
+The native Web plugin page exposes every core setting, runtime counters, scoped record pagination, bounded escaped previews and paged original downloads. Images and GIFs display original bytes; audio and video use native browser controls. HTML and other active documents download as attachments with sandbox and nosniff headers. Owner RPC methods independently reject non-owner principals, including principals with a global action grant.
 
-materialize converts a complete graph into a detached inline display tree while preserving nested resources, quotes and part order. maxNodes, maxInlineDepth and maxPartsPerNode also bound repeated display expansion; exceeding them fails the complete operation. It never changes the retained source document or discards unsupported ordinary parts to make a send succeed.
+Settings save and explicit restart require idle IO and an observed configuration revision. Drafts survive refresh and failed saves. Namespace changes cannot hide retained records, and tighter limits cannot strand existing graphs or original media. A busy operation refuses maintenance; it is not silently cancelled. Disabling and re-enabling the core preserves stored records.
 
-## Configuration
+Core capacities are declared in [Config](src/config.ts) and [the browser field inventory](src/fields.ts): namespace; read/provider concurrency and deadlines; traversal, inline depth, node, part, text and document limits; prepared-record retention and mutation limits; prepare/send concurrency; original counts, bytes, dimensions, pixels, chunk size and MIME policy. prepareTimeoutMs bounds the entire preparation, including media acquisition, independently of readTimeoutMs. Cancellation waits for owned work to settle.
 
-All deployment capacities are explicit Config fields: namespace; maxConcurrentReads, maxProviderCalls, readTimeoutMs; maxTraversalDepth, maxInlineDepth, maxMessages, maxResources, maxNodes, maxPartsPerNode, maxTextChars, maxDocumentBytes; maxPrepared, maxRecordBytes, maxRetainedBytes, maxPendingMutations; maxConcurrentPrepares, maxConcurrentSends; maxAssets, maxMediaItemBytes, maxMediaBytes, mediaChunkBytes, maxMediaDimension, maxMediaPixels and allowedMediaMimeTypes. enabled defaults to false. See [the schema](src/config.ts) for ranges and defaults.
+qq-forward-control has independent targetEntryId, statusRefreshMs, pageSize, maxScopeOptions, previewChars and previewMedia settings. Preview limits never truncate retained source data or original downloads. The owner route exports only an attachment belonging to the selected scope and prepared ID; it accepts no arbitrary location.
 
-Prepared records use native domain version 1. They are retained until their owner explicitly manages them; this candidate provides no deletion, TTL or migration command. Record recovery validates graph reachability, quote consistency, cycles, capacities, content fingerprints, exact scope and complete media coverage. Invalid records fail recovery rather than being skipped.
+-----
 
-## Verify this candidate
+<a id="implementation"></a>
+## Understand the implementation
 
-Run npm run typecheck and npm test. Unit tests use synthetic identities, loopback-independent providers, actual native JSON storage and actual native attachment streams. Test files and temporary data stay under .test-artifacts; no production archive, persona, skills, QQ account or external model is loaded. Cancellation tests use barriers and await actual cleanup. Node 22 results are compatibility probes, not a change to the Host requirement.
+<details>
+<summary>Implementation internals</summary>
 
-The release-input scripts verify immutable public library archives before seeding npm's cache. package.json and package-lock.json retain public dependency URLs; the development bootstrap temporarily installs the exact verified archives and restores the public manifest. No private runtime dependency or ancestor module is intended as an installation prerequisite.
+Trusted Host consumers register a ForwardProvider per exact account. read retains a graph with explicit unresolved, ambiguous, cyclic and limited edges. Equal resource IDs under different outer-message grants remain distinct. Oversized source content fails intact. prepare refuses an incomplete graph and deduplicates by scope plus operation ID and input fingerprint. It retains native attachment receipts with the complete graph. Reopening storage neither fetches sources nor replays sends.
 
-## Optional durable delivery
+Prepared records use native domain version 1. Recovery validates graph reachability, quote consistency, capacities, fingerprints, exact scope and complete media coverage. Invalid records fail recovery. Metadata previews are detached from immutable originals. Native receipts remain Host-only. See [the runtime](src/runtime.ts), [storage](src/store.ts) and [wire validation](src/wire.ts).
 
-The separate dsh-qq-forward/job-delivery entry requires the optional dsh-job-delivery 0.2.0-development peer and existing imForward/jobDelivery services. Its Config fields are enabled, provider and maxConcurrent. The default-disabled adapter exposes imForwardJobs.submit with scope, actorId, operationId and preparedId. It validates the retained grant before queue admission and checkpoints one stable prepared forward reference. The shared queue owns retries, uncertainty reconciliation, observation and cancellation; the adapter copies no source body into the task request.
+materialize expands nested resources and quotes into an ordered display tree under explicit duplication limits. The OneBot adapter refuses unsupported parts and whole forwards containing files before calling the sender; it never drops parts to simulate success. Supported original bytes receive scoped temporary transport handles, which are released after settlement. sendRetained attempts once per invocation; sender exceptions remain uncertain. Operation-level deduplication belongs to the durable queue.
 
-Provider registration and send-capacity releases wake the existing queue through scoped invalidation. Removing the adapter joins its producer registration; retained prepared data and task records are preserved. End-to-end queue dispatch through an installed transport is still pending native-profile verification.
+</details>
 
+<a id="verification"></a>
+## Verification
+
+npm run check runs strict Host/Client typechecks, behavior tests and package guards. Tests exercise recursive graphs, exact scope, native JSON/attachment storage, cancellation barriers, concurrent conversations, original policy, owner controls and actual published OneBot/job adapters. Loopback protocol frames are simulation evidence, not QQ phone verification.
+
+After npm pack --pack-destination artifacts, npm run test:dsh -- --minimum-free-bytes 1073741824 installs a fresh SDK profile and verifies prepare, cross-process receipt recovery and owner reload. npm run test:web -- --minimum-free-bytes 1073741824 --browser-cache <installed-playwright-cache> installs a fresh Web profile and drives its own headless browser through the native page. All artifacts stay under .test-artifacts. No production persona, skills, memory, credentials or live QQ destination is loaded.
+
+<a id="model-experience"></a>
 ## Model Experience
 
-Indirect. There are no model tools or prompt changes in the core. Forwarded content, names, links and cards are untrusted source material. A consumer decides whether to render it, authorizes the operation and records model-visible events. Native attachment receipts are Host-only data, not model-selected filesystem locations.
+Indirect. This bundle adds no model tool or prompt. Forwarded text, sender claims, links and cards are untrusted content. A consuming plugin authorizes access and must record every model-visible input in its own DSH session events. Displayed sender names never establish identity.
 
+<a id="limitations"></a>
 ## Known Limitations and Deferred Work
 
-- The independent OneBot bridge, native owner page, offline-lab capture and fresh bundle-installation verification are pending. The optional durable delivery adapter has unit verification only. This candidate is not ready to replace production handling.
-- The core does not download arbitrary URLs. Original acquisition belongs to the scoped media provider; storage preserves the bytes it supplies without resizing or re-encoding.
-- Immutable attachments imported before a later cancellation or admission conflict may remain under native attachment ownership. This core never deletes shared originals; storage-owner retention management is separate.
-- Sender claims are retained for display only. Backend timestamps and transport-specific unsupported parts depend on the selected sender adapter.
-- Confirmed server receipts do not prove a QQ phone displayed a message. No real QQ, Bilibili write or model request has been made during these tests.
+- Full forward-graph capture in the independent offline lab is not implemented. QQ phone rendering and desktop-native UI verification remain separate acceptance work. The native Web page does not prove either.
+- The core does not download arbitrary URLs, resize media, delete records, enforce TTL or migrate data. A scoped media provider supplies originals; native storage retains exactly those bytes. Transport delivery may have separate protocol limits.
+- An immutable attachment imported before a later cancellation or admission conflict may remain under native attachment ownership. This package does not delete shared originals.
+- Source authorization belongs to the provider and caller. A prepared output alone does not guarantee exactly-once delivery. Confirm uncertain results before a retry; server acceptance does not prove client display.
+
+### Dev Note
+
+The pre-release does not replace production robot handling automatically. Release evidence lives in the repository evidence directory; no model, live QQ message or Bilibili write is required for these tests.

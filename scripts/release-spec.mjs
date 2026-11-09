@@ -20,12 +20,12 @@ export const releaseInputs=[
   },
   {
     "name": "dsh-qq-onebot",
-    "version": "0.3.0-development",
-    "sha256": "b15b2c6532654c16892d61c09149c993f145397b9a27de22d7d3ae462c4318b0",
-    "file": "dsh-qq-onebot-0.3.0-development.tgz",
+    "version": "0.4.0-development",
+    "sha256": "9c7d38e619fae0650a10d9617e5c7b5530e04c7fd98f23552f4ff9afb6d59463",
+    "file": "dsh-qq-onebot-0.4.0-development.tgz",
     "repository": "Soldsix/dsh-qq-onebot",
-    "tag": "v0.3.0-development",
-    "url": "https://github.com/Soldsix/dsh-qq-onebot/releases/download/v0.3.0-development/dsh-qq-onebot-0.3.0-development.tgz"
+    "tag": "v0.4.0-development",
+    "url": "https://github.com/Soldsix/dsh-qq-onebot/releases/download/v0.4.0-development/dsh-qq-onebot-0.4.0-development.tgz"
   },
   {
     "name": "dsh-job-delivery",

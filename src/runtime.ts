@@ -13,7 +13,7 @@ import {Flights} from './flights.ts'
 import {ForwardError} from './errors.ts'
 import {readGraph,sourceNodes} from './graph.ts'
 import {scopeSchema,readSchema,preparedIdSchema,preparedIdentity,fingerprint,parseNodes} from './wire.ts'
-import type {ForwardProvider,ForwardDocument,PreparedForward,PreparedId,ForwardAsset,ForwardNode} from './types.ts'
+import type {ForwardProvider,ForwardDocument,PreparedForward,PreparedId,ForwardAsset,ForwardNode,PreparedView,RuntimeStatus} from './types.ts'
 interface Registration{readonly provider:ForwardProvider;readonly owner:string;readonly lifetime:AbortController;readonly pending:Set<Promise<DeliveryReceipt>>;closing?:Promise<void>}
 /** Required native bytes and optional protocol-neutral inbound original service. */
 export interface ForwardServices{readonly storage:DomainFacility;readonly attachments:VerbatimAttachmentStore;readonly media?:()=>ImMediaRuntime|undefined;readonly capacity?:(scope?:ConversationScope)=>void}
@@ -25,46 +25,67 @@ export class ForwardRuntime{
  private readonly reads:Flights<ForwardDocument>
  private readonly prepares:Flights<{readonly id:PreparedId;readonly replayed:boolean}>
  private readonly calls:ReturnType<typeof pLimit>
+ private maintenance=false
  private sending=0
+ private readonly exports=new Set<Promise<OriginalMedia>>()
  private stopping:Promise<void>|undefined
  private constructor(readonly config:Config,private readonly store:PreparedStore,private readonly services:ForwardServices){this.reads=new Flights(config.maxConcurrentReads);this.prepares=new Flights(config.maxConcurrentPrepares);this.calls=pLimit(config.maxProviderCalls)}
  /** @param config - resolved deployment settings. @param services - native persistence/attachments and optional original-media service. @returns recovered prepared records without replaying sends or provider calls. */
  static async open(config:Config,services:ForwardServices):Promise<ForwardRuntime>{const resolved=Object.freeze({...validateConfig(config)});return new ForwardRuntime(resolved,await PreparedStore.open(resolved,services.storage),services)}
+ /** Applied settings fingerprint contains no runtime source data. */
+ get configRevision():string{return fingerprint(this.config)}
+ private assertMutable():void{if(this.lifetime.signal.aborted)throw new ForwardError('closed');if(this.maintenance)throw new ForwardError('busy')}
+ /** @returns an idempotent idle maintenance release; new work is refused until release or disposal. */
+ acquireMaintenance():()=>void{this.assertMutable();if(this.reads.size||this.prepares.size||this.sending||this.exports.size)throw new ForwardError('busy');this.maintenance=true;let released=false;return()=>{if(!released){released=true;this.maintenance=false;this.notify()}}}
+ /** @param next - prospective parsed capacities. @returns compatibility with all retained data without altering it. */
+ validateReplacement(next:Config):void{validateConfig(next);this.store.validateReplacement(next)}
+ /** @returns retained conversation identities for trusted Host owner controls. */
+ scopes():readonly ConversationScope[]{return this.store.scopes()}
+ /** @param scope - exact authorized conversation. @returns scalar record summaries, never source parts or native receipts. */
+ list(scope:ConversationScope):readonly PreparedView[]{return this.store.list(scope)}
  /** @param provider - installed exact-account source/sender. @returns cancellation and joined disposal without removing prepared records. */
  register(provider:ForwardProvider):()=>Promise<void>{
-  if(this.lifetime.signal.aborted)throw new ForwardError('closed');const key=accountKey(provider.account);if(this.providers.has(key))throw new ForwardError('conflict')
+  this.assertMutable();const key=accountKey(provider.account);if(this.providers.has(key))throw new ForwardError('conflict')
   const registration:Registration={provider,owner:randomUUID(),lifetime:new AbortController(),pending:new Set()};this.providers.set(key,registration);this.notify()
   return()=>this.stop(key,registration)
  }
  private notify(scope?:ConversationScope):void{try{this.services.capacity?.(scope)}catch(error){/* Invalidation cannot replace a completed registration or send receipt. */}}
  private stop(key:AccountKey,registration:Registration):Promise<void>{if(registration.closing)return registration.closing;registration.lifetime.abort();return registration.closing=(async()=>{const settled=await Promise.allSettled([this.reads.closeOwner(registration.owner),this.prepares.closeOwner(registration.owner),...registration.pending,Promise.resolve().then(()=>registration.provider.dispose())]);if(this.providers.get(key)===registration)this.providers.delete(key);if(settled.some(value=>value.status==='rejected'))throw new ForwardError('unavailable')})()}
  /** @returns body-free runtime facts suitable for the owner page. */
- status():{readonly providers:number;readonly reading:number;readonly preparing:number;readonly sending:number;readonly retained:number|null;readonly storageFault:boolean;readonly closed:boolean}{const stored=this.store.status();return{providers:this.providers.size,reading:this.reads.size,preparing:this.prepares.size,sending:this.sending,retained:stored.retained,storageFault:stored.fault,closed:this.lifetime.signal.aborted}}
+ status():RuntimeStatus{const stored=this.store.status();return{providers:this.providers.size,reading:this.reads.size,preparing:this.prepares.size,sending:this.sending,exporting:this.exports.size,retained:stored.retained,storageFault:stored.fault,maintenance:this.maintenance,closed:this.lifetime.signal.aborted}}
  /** @param value - authenticated scope and root/resource IDs. @param signal - one reader's lifetime. @returns a graph whose source parts are unchanged; missing edges are explicit. */
  async read(value:unknown,signal:AbortSignal):Promise<ForwardDocument>{
-  let request;try{request=readSchema.parse(value)}catch(error){throw new ForwardError('invalid')}
+  this.assertMutable();let request;try{request=readSchema.parse(value)}catch(error){throw new ForwardError('invalid')}
   const registration=this.providers.get(accountKey(request.scope.account));if(!registration||registration.lifetime.signal.aborted)throw new ForwardError('unavailable')
   const key=fingerprint(request),result=await this.reads.run(key,key,registration.owner,signal,async abort=>{const deadline=AbortSignal.timeout(this.config.readTimeoutMs),combined=AbortSignal.any([abort,deadline,registration.lifetime.signal]);try{const document=await readGraph(request,registration.provider,this.config,work=>this.calls(work),combined);if(combined.aborted)throw new ForwardError(deadline.aborted?'timeout':'cancelled');return document}catch(error){if(combined.aborted)throw new ForwardError(deadline.aborted?'timeout':'cancelled');throw error instanceof ForwardError?error:new ForwardError('unavailable')}})
   return structuredClone(result)
  }
  /** @param scope - exact authorized destination. @param id - opaque prepared identity. @returns an independent retained document and native receipts, for trusted Host consumers only. */
  inspect(scope:ConversationScope,id:PreparedId):PreparedForward{const record=this.store.get(id);if(!record||!sameScope(record.scope,scope))throw new ForwardError('not-found');return structuredClone(record)}
+ /** @param scope - exact authorized conversation. @param id - retained output. @param attachment - original handle inside that retained output. @param signal - export lifetime. @returns verified original bytes; no transport source or user-selected location is opened. */
+ async readOriginal(scope:ConversationScope,id:PreparedId,attachment:AttachmentId,signal:AbortSignal):Promise<OriginalMedia>{
+  this.assertMutable();if(signal.aborted)throw new ForwardError('cancelled');if(this.exports.size>=this.config.maxConcurrentReads)throw new ForwardError('capacity')
+  const record=this.inspect(scope,id),asset=record.assets.find(value=>value.originalId===attachment);if(!asset)throw new ForwardError('not-found')
+  const combined=AbortSignal.any([signal,this.lifetime.signal]),operation=readNativeOriginal(this.services.attachments,asset.stored,mediaStorage(this.config),combined);this.exports.add(operation)
+  try{return await operation}catch(error){throw new ForwardError(combined.aborted?'cancelled':'media-failed')}finally{this.exports.delete(operation)}
+ }
  /** @param value - source request or generated nodes; native receipt injection is not accepted. @param signal - one preparation caller. @returns a durable output identity; identical operations replay without new reads or media imports. */
  async prepare(value:unknown,signal:AbortSignal):Promise<{readonly id:PreparedId;readonly replayed:boolean}>{
-  if(this.lifetime.signal.aborted)throw new ForwardError('closed');if(signal.aborted)throw new ForwardError('cancelled')
+  this.assertMutable();if(signal.aborted)throw new ForwardError('cancelled')
   let request;try{request=prepareSchema.parse(value)}catch(error){throw new ForwardError('invalid')}
   const nodes=request.input.kind==='generated'?parseNodes(request.input.nodes,this.config):undefined,normalized={...request,input:request.input.kind==='generated'?{kind:'generated' as const,nodes}:request.input},requestFingerprint=fingerprint(normalized),id=preparedIdentity(request.scope,request.operationId),existing=this.store.get(id)
   if(existing){if(existing.requestFingerprint!==requestFingerprint)throw new ForwardError('conflict');return{id,replayed:true}}
   this.store.requireCapacity()
   const registration=this.providers.get(accountKey(request.scope.account))
   return this.prepares.run(id,requestFingerprint,registration?.owner??'prepare',signal,async abort=>{
-   const combined=AbortSignal.any([abort,this.lifetime.signal,...registration?[registration.lifetime.signal]:[]]),again=this.store.get(id);if(again){if(again.requestFingerprint!==requestFingerprint)throw new ForwardError('conflict');return{id,replayed:true}}
+   const deadline=AbortSignal.timeout(this.config.prepareTimeoutMs),combined=AbortSignal.any([abort,deadline,this.lifetime.signal,...registration?[registration.lifetime.signal]:[]]);try{const again=this.store.get(id);if(again){if(again.requestFingerprint!==requestFingerprint)throw new ForwardError('conflict');return{id,replayed:true}}
    let document:ForwardDocument
    if(request.input.kind==='source')document=await this.read({scope:request.scope,rootMessageId:request.input.rootMessageId,resourceId:request.input.resourceId},combined)
    else{const rootMessageId=identifier('im.message','generated/'+id),resourceId=identifier('im.forward','generated/'+id),localCalls=pLimit(this.config.maxProviderCalls);const fixture:ForwardProvider={account:request.scope.account,async read(input,signal){if(input.rootMessageId===rootMessageId&&input.resourceId===resourceId)return{status:'resolved',nodes:nodes!};return{status:'failed',code:'not-found'}},...registration?.provider.message?{message:registration.provider.message.bind(registration.provider)}:{},async dispose(){}};document=await readGraph({scope:request.scope,rootMessageId,resourceId},fixture,this.config,work=>localCalls(work),combined)}
    if(!document.complete)throw new ForwardError('incomplete')
    const assets=await this.retainAssets(document,combined);if(combined.aborted)throw new ForwardError('cancelled')
    const stored=await this.store.admit({version:1,id,scope:request.scope,operationId:request.operationId,requestFingerprint,fingerprint:fingerprint(document),document,assets,createdAt:Date.now()});return{id,replayed:stored.replayed}
+   }catch(error){if(deadline.aborted)throw new ForwardError('timeout');if(combined.aborted)throw new ForwardError('cancelled');throw error}
   })
  }
  private mediaParts(document:ForwardDocument):Map<AttachmentId,Set<string>>{
@@ -81,6 +102,7 @@ export class ForwardRuntime{
  /** @param scope - exact authorized destination. @param value - a prepared resource reference. @param signal - delivery lifetime. @returns a classified receipt after reading exact originals; use the shared durable task queue for once-per-operation delivery. */
  async sendRetained(scope:ConversationScope,value:unknown,signal:AbortSignal):Promise<DeliveryReceipt>{
   if(signal.aborted||this.lifetime.signal.aborted)return{status:'failed',code:'cancelled'}
+  if(this.maintenance)return{status:'failed',code:'unavailable'}
   let id:PreparedId;try{id=preparedIdSchema.parse(value)}catch(error){return{status:'failed',code:'rejected'}}
   let record:PreparedForward;try{record=this.inspect(scope,id)}catch(error){return{status:'failed',code:error instanceof ForwardError&&error.code==='not-found'?'permission-denied':'unavailable'}}
   const registration=this.providers.get(accountKey(scope.account));if(!registration?.provider.send||registration.lifetime.signal.aborted)return{status:'failed',code:'missing-transport'}
@@ -95,5 +117,5 @@ export class ForwardRuntime{
   try{return await operation}finally{registration.pending.delete(operation);this.sending--;this.notify(scope)}
  }
  /** @returns completion after reader, prepare, sender and provider cleanup; durable prepared records remain. */
- close():Promise<void>{if(this.stopping)return this.stopping;this.lifetime.abort();return this.stopping=(async()=>{const settled=await Promise.allSettled([this.reads.close(),this.prepares.close(),...[...this.providers].map(([key,value])=>this.stop(key,value))]);await this.store.close();if(settled.some(value=>value.status==='rejected'))throw new ForwardError('unavailable')})()}
+ close():Promise<void>{if(this.stopping)return this.stopping;this.lifetime.abort();return this.stopping=(async()=>{const settled=await Promise.allSettled([this.reads.close(),this.prepares.close(),...[...this.exports].map(value=>value.then(()=>{},()=>{})),...[...this.providers].map(([key,value])=>this.stop(key,value))]);await this.store.close();if(settled.some(value=>value.status==='rejected'))throw new ForwardError('unavailable')})()}
 }

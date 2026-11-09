@@ -20,7 +20,19 @@
       "types": "./dist/job-delivery.d.ts",
       "import": "./dist/job-delivery.js"
     },
-    "./cordis.patch.yml": "./cordis.patch.yml"
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./onebot": {
+      "types": "./dist/onebot.d.ts",
+      "import": "./dist/onebot.js"
+    },
+    "./control": {
+      "types": "./dist/control.d.ts",
+      "import": "./dist/control.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client.js"
+    }
   },
   "files": [
     "dist/**/*.js",
@@ -34,6 +46,15 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
     }
   },
   "peerDependencies": {
@@ -42,10 +63,28 @@
     "@deepseek-ai/dsh-brand": "0.2.2-rc.1",
     "@deepseek-ai/dsh-attachment": "0.2.2-rc.1",
     "@deepseek-ai/dsh-storage-domain": "0.2.2-rc.1",
-    "dsh-job-delivery": "0.2.0-development"
+    "dsh-job-delivery": "0.2.0-development",
+    "dsh-qq-onebot": "0.4.0-development",
+    "@deepseek-ai/dsh-config-editor": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-connection": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-api-gateway": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-locale": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-store": "0.2.2-rc.1",
+    "@deepseek-ai/cordis-plugin-loader": "~1.1.0"
   },
   "peerDependenciesMeta": {
-    "dsh-job-delivery": {"optional": true}
+    "dsh-job-delivery": {
+      "optional": true
+    },
+    "dsh-qq-onebot": {
+      "optional": true
+    }
   },
   "dependencies": {
     "dsh-im-kit": "https://github.com/Soldsix/dsh-im-kit/releases/download/v0.2.1/dsh-im-kit-0.2.1.tgz",
@@ -62,8 +101,34 @@
     "@types/node": "24.0.0",
     "typescript": "5.9.3",
     "yaml": "2.9.1",
-    "dsh-qq-onebot": "https://github.com/Soldsix/dsh-qq-onebot/releases/download/v0.3.0-development/dsh-qq-onebot-0.3.0-development.tgz",
-    "dsh-job-delivery": "https://github.com/Soldsix/dsh-job-delivery/releases/download/v0.2.0-development/dsh-job-delivery-0.2.0-development.tgz"
+    "dsh-qq-onebot": "https://github.com/Soldsix/dsh-qq-onebot/releases/download/v0.4.0-development/dsh-qq-onebot-0.4.0-development.tgz",
+    "dsh-job-delivery": "https://github.com/Soldsix/dsh-job-delivery/releases/download/v0.2.0-development/dsh-job-delivery-0.2.0-development.tgz",
+    "pnpm": "10.33.2",
+    "@types/react": "18.3.28",
+    "@types/react-dom": "18.3.7",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "esbuild": "0.28.2",
+    "clsx": "2.1.1",
+    "playwright": "1.65.0",
+    "immer": "10.2.0",
+    "zustand": "~4.5.7",
+    "@deepseek-ai/dsh-client-store": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-api-gateway": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-api-remotes": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-plugin-manager": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-plugin-market": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-locale": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-plugin-manager": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-util-file-drag": "0.2.2-rc.1",
+    "@shikijs/langs": "4.4.3",
+    "@types/mdast": "4.0.4",
+    "ws": "8.22.2"
   },
   "overrides": {
     "zod": "4.6.6",
@@ -73,12 +138,15 @@
     "dsh-im-kit": "$dsh-im-kit"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.host.json && tsc -p tsconfig.client.json && node scripts/build-client.mjs",
+    "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
     "check": "npm run typecheck && npm test && npm run verify",
     "verify": "node scripts/verify-package.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test:dsh": "node scripts/integration/test-native.mjs",
+    "test:web": "node scripts/integration/test-web.mjs",
+    "test:consumer": "node scripts/integration/test-consumer.mjs"
   },
   "repository": {
     "type": "git",

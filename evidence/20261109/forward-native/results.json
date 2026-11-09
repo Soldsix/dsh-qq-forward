@@ -1,0 +1,151 @@
+{
+  "status": "local-native-and-consumer-verified-ci-pending",
+  "version": "0.1.0-development",
+  "dsh": "0.2.2-rc.1",
+  "hostNode": "24.13.1",
+  "hostMinimum": "24.9.0",
+  "archiveSha256": "766924698ceca14b9c097719e927de898c1e2dbef32f345e1723208b185e009b",
+  "archiveBytes": 64609,
+  "unitTests": {
+    "node22": 44,
+    "node24": 44
+  },
+  "checks": {
+    "sdk": {
+      "passed": true,
+      "checks": [
+        "all-seven-native-owner-methods-refuse-globally-permitted-nonowners",
+        "native-protocol-nested-resources-and-cached-quote-resolve-without-global-message-lookup",
+        "admitted-original-http-bytes-native-storage-native-jobs-and-forward-dispatch-compose",
+        "native-owner-preview-and-metadata-keep-exact-scope-without-source-locations",
+        "all-seven-native-owner-methods-refuse-globally-permitted-nonowners",
+        "second-sdk-process-recovers-retained-output-and-accepted-receipt-without-source-or-send-replay",
+        "original-remains-readable-after-protocol-source-cache-is-gone",
+        "independent-native-owner-control-applies-idle-config-and-restart-without-dependent-fiber-deadlock-or-data-loss"
+      ],
+      "phases": [
+        {
+          "passed": true,
+          "phase": "prepare",
+          "checks": [
+            "all-seven-native-owner-methods-refuse-globally-permitted-nonowners",
+            "native-protocol-nested-resources-and-cached-quote-resolve-without-global-message-lookup",
+            "admitted-original-http-bytes-native-storage-native-jobs-and-forward-dispatch-compose",
+            "native-owner-preview-and-metadata-keep-exact-scope-without-source-locations"
+          ],
+          "preparedId": "fw-3e8ea37d9dd95f40f97dfe887d150f218f478a02f1dffe30620bb2317650041a",
+          "original": {
+            "id": "ba684752-d598-4f1d-9eb7-8d973765b1e9",
+            "name": "media.png",
+            "mime": "image/png",
+            "bytes": 68,
+            "sha256": "27172b834c4aef42a225a53fa5b6a10437dd66fcff3d8e58959126e63df59909",
+            "width": 1,
+            "height": 1
+          },
+          "acquired": 1,
+          "realModelCalls": 0,
+          "qqMessages": 0
+        },
+        {
+          "passed": true,
+          "phase": "recover",
+          "checks": [
+            "all-seven-native-owner-methods-refuse-globally-permitted-nonowners",
+            "second-sdk-process-recovers-retained-output-and-accepted-receipt-without-source-or-send-replay",
+            "original-remains-readable-after-protocol-source-cache-is-gone"
+          ],
+          "preparedId": "fw-3e8ea37d9dd95f40f97dfe887d150f218f478a02f1dffe30620bb2317650041a",
+          "acquired": 0,
+          "realModelCalls": 0,
+          "qqMessages": 0
+        },
+        {
+          "passed": true,
+          "phase": "reload",
+          "checks": [
+            "independent-native-owner-control-applies-idle-config-and-restart-without-dependent-fiber-deadlock-or-data-loss"
+          ],
+          "realModelCalls": 0,
+          "qqMessages": 0
+        }
+      ],
+      "installedFiles": 50,
+      "verifiedInputs": [
+        {
+          "name": "dsh-im-kit",
+          "sha256": "48686023b7307e3296d403994ad5cfb5cc7bfa7e4be5ef423af934b5286c40f0"
+        },
+        {
+          "name": "dsh-media-kit",
+          "sha256": "4a25348e260a23c5c43148cc224e1c8dfcfebc8382bae5bed1769ea7bb10d3bf"
+        },
+        {
+          "name": "dsh-qq-onebot",
+          "sha256": "9c7d38e619fae0650a10d9617e5c7b5530e04c7fd98f23552f4ff9afb6d59463"
+        },
+        {
+          "name": "dsh-job-delivery",
+          "sha256": "1b4add07306fd7351a1a236aecc23ba4d5285d99b8c76471159dcc0d7f26eb36"
+        }
+      ],
+      "protocolWrites": 1,
+      "realModelCalls": 0,
+      "qqMessages": 0,
+      "bilibiliWrites": 0
+    },
+    "web": {
+      "passed": true,
+      "checks": [
+        "native-page-all-settings-and-scoped-retained-pagination",
+        "bounded-escaped-preview-and-access-to-every-paged-original",
+        "authenticated-original-download-byte-hashes-safe-html-and-cross-scope-refusal",
+        "browser-decodes-both-retained-image-originals",
+        "retained-namespace-change-refused-with-draft-preserved",
+        "draft-survives-refresh-and-native-idle-reload-restart-preserve-records",
+        "light-dark-and-narrow-native-layout",
+        "disable-and-reenable-retain-data-without-regeneration"
+      ],
+      "installedFiles": 50,
+      "clientErrors": [],
+      "consoleErrors": [],
+      "realModelCalls": 0,
+      "qqMessages": 0,
+      "bilibiliWrites": 0
+    },
+    "consumer": {
+      "passed": true,
+      "archiveSha256": "766924698ceca14b9c097719e927de898c1e2dbef32f345e1723208b185e009b",
+      "installedFiles": 50,
+      "declarationInputs": 342,
+      "ancestorDependenciesBorrowed": false,
+      "strictDeclarationErrors": 0,
+      "runtime": {
+        "passed": true,
+        "applicationsStarted": 0,
+        "connectionsOpened": 0
+      },
+      "realModelCalls": 0,
+      "qqMessages": 0,
+      "bilibiliWrites": 0
+    }
+  },
+  "freshNpmCi": true,
+  "failedInstallMismatchFixed": "ws manifest 8.22.1 disagreed with lock 8.22.2; npm regenerated the public lock with 8.22.2",
+  "nativeFixturesFixed": [
+    "service availability after provider activation",
+    "reload control invoked after SDK boot rather than from a dependent plugin startup",
+    "atomic readiness publication",
+    "unique lowercase per-attempt native domain namespace"
+  ],
+  "realModelCalls": 0,
+  "qqMessages": 0,
+  "bilibiliWrites": 0,
+  "productionTouched": false,
+  "protectedDataAccessed": false,
+  "remaining": [
+    "GitHub CI and release",
+    "full forward-graph offline-lab capture",
+    "QQ phone and native desktop acceptance"
+  ]
+}

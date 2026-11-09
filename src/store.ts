@@ -4,6 +4,8 @@ import type {Config} from './config.ts'
 import type {PreparedForward,PreparedId} from './types.ts'
 import {recordSchema} from './wire.ts'
 import {ForwardError} from './errors.ts'
+import {sameScope,scopeKey,type ConversationScope} from 'dsh-im-kit'
+import type {PreparedView} from './types.ts'
 function definition(config:Config){return defineDomain({name:config.namespace,version:1,layout:'single' as const,tables:{prepared:domainTable<PreparedId,PreparedForward>(recordSchema(config))}})}
 type PreparedDomain=Domain<ReturnType<typeof definition>>
 /** Bounded serialized persistence never holds the mutation queue during network or media IO. */
@@ -22,6 +24,13 @@ export class PreparedStore{
  status():{readonly retained:number|null;readonly pending:number;readonly bytes:number;readonly fault:boolean}{if(this.fault)return{retained:null,pending:this.pending,bytes:this.bytes,fault:true};try{return{retained:this.table.size,pending:this.pending,bytes:this.bytes,fault:false}}catch(error){this.fault=true;return{retained:null,pending:this.pending,bytes:this.bytes,fault:true}}}
  /** @param id - retained prepared identity. @returns immutable native-domain snapshot, or undefined. */
  get(id:PreparedId):PreparedForward|undefined{if(this.closed)throw new ForwardError('closed');if(this.fault)throw new ForwardError('storage');try{return this.table.get(id)}catch(error){this.fault=true;throw new ForwardError('storage')}}
+ private records():readonly PreparedForward[]{if(this.closed)throw new ForwardError('closed');if(this.fault)throw new ForwardError('storage');try{return[...this.table.entries()].map(([,value])=>value)}catch(error){this.fault=true;throw new ForwardError('storage')}}
+ /** @returns detached scopes of retained records, without content or attachment locations. */
+ scopes():readonly ConversationScope[]{return[...new Map(this.records().map(value=>[scopeKey(value.scope),structuredClone(value.scope)])).values()]}
+ /** @param scope - exact authorized conversation. @returns detached retained metadata without source bodies or native receipts. */
+ list(scope:ConversationScope):readonly PreparedView[]{return this.records().filter(value=>sameScope(value.scope,scope)).map(value=>({id:value.id,scope:structuredClone(value.scope),operationId:value.operationId,createdAt:value.createdAt,nodes:value.document.nodeCount,resources:value.document.resources.length,quotes:value.document.messages.length,media:value.assets.length,mediaBytes:value.assets.reduce((sum,asset)=>sum+asset.stored.descriptor.byteLength,0)}))}
+ /** @param next - prospective settings. @returns compatibility with all retained records; namespace changes cannot hide retained data. */
+ validateReplacement(next:Config):void{const records=this.records();if(records.length&&next.namespace!==this.config.namespace)throw new ForwardError('conflict');if(records.length>next.maxPrepared||this.bytes>next.maxRetainedBytes)throw new ForwardError('capacity');try{for(const record of records)recordSchema(next).parse(record)}catch(error){throw new ForwardError('capacity')}}
  /** Reject known full retention before external IO; concurrent admissions still recheck inside the mutation queue. */
  requireCapacity():void{if(this.closed||this.stopping)throw new ForwardError('closed');if(this.fault)throw new ForwardError('storage');let size:number;try{size=this.table.size}catch(error){this.fault=true;throw new ForwardError('storage')}if(size>=this.config.maxPrepared||this.bytes>=this.config.maxRetainedBytes)throw new ForwardError('capacity')}
  /** @param value - complete content after media originals were stored. @returns durable admission or an unchanged identical existing operation. */

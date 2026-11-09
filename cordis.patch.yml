@@ -3,3 +3,7 @@
       name: dsh-qq-forward
       config:
         enabled: false
+    - id: qq-forward-control
+      name: dsh-qq-forward/control
+      config:
+        targetEntryId: qq-forward

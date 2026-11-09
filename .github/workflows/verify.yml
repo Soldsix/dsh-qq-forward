@@ -1,0 +1,111 @@
+name: Verify forward bundle
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  package:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22.19.0, 24.x]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: node scripts/release-inputs.mjs --seed-npm-cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - run: npm pack --pack-destination artifacts
+      - if: matrix.node == '24.x'
+        run: npm run test:consumer
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: diagnostics-${{ github.job }}-${{ matrix.os }}-${{ matrix.node }}
+          path: |-
+            .test-artifacts/**/installation.json
+            .test-artifacts/**/commands.json
+            .test-artifacts/**/result.json
+            .test-artifacts/**/type-diagnostics.txt
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+  native:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: node scripts/release-inputs.mjs --seed-npm-cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm pack --pack-destination artifacts
+      - run: npm run test:dsh -- --minimum-free-bytes 1073741824
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: diagnostics-${{ github.job }}-${{ matrix.os }}
+          path: |-
+            .test-artifacts/**/installation.json
+            .test-artifacts/**/result.json
+            .test-artifacts/**/prepare.json
+            .test-artifacts/**/recover.json
+            .test-artifacts/**/reload.json
+            .test-artifacts/**/*-process.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+  web:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: .test-artifacts/browsers
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: node scripts/release-inputs.mjs --seed-npm-cache
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node node_modules/playwright/cli.js install --with-deps chromium --only-shell
+      - run: npm pack --pack-destination artifacts
+      - run: npm run test:web -- --minimum-free-bytes 1073741824 --browser-cache .test-artifacts/browsers
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: failure()
+        with:
+          name: diagnostics-web
+          path: |-
+            .test-artifacts/**/installation.json
+            .test-artifacts/**/result.json
+            .test-artifacts/**/process.json
+            .test-artifacts/**/failure.png
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
