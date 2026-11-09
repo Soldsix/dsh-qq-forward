@@ -143,7 +143,7 @@
     "test": "npm run build && node --test test/*.test.mjs",
     "check": "npm run typecheck && npm test && npm run verify",
     "verify": "node scripts/verify-package.mjs",
-    "prepack": "npm run build",
+    "prepack": "node scripts/prepare-pack.mjs && npm run build",
     "test:dsh": "node scripts/integration/test-native.mjs",
     "test:web": "node scripts/integration/test-web.mjs",
     "test:consumer": "node scripts/integration/test-consumer.mjs"

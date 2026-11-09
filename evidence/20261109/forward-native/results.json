@@ -4,8 +4,8 @@
   "dsh": "0.2.2-rc.1",
   "hostNode": "24.13.1",
   "hostMinimum": "24.9.0",
-  "archiveSha256": "766924698ceca14b9c097719e927de898c1e2dbef32f345e1723208b185e009b",
-  "archiveBytes": 64609,
+  "archiveSha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5",
+  "archiveBytes": 64617,
   "unitTests": {
     "node22": 44,
     "node24": 44
@@ -147,5 +147,14 @@
     "GitHub CI and release",
     "full forward-graph offline-lab capture",
     "QQ phone and native desktop acceptance"
+  ],
+  "nativeAndConsumerArchiveSha256": "766924698ceca14b9c097719e927de898c1e2dbef32f345e1723208b185e009b",
+  "ciHistory": [
+    {
+      "run": 42594989701,
+      "result": "failed",
+      "reason": "all seven jobs reached pack, but a clean checkout has no artifacts directory",
+      "fix": "prepack creates the directory; npm pack succeeded in the separate fresh npm-ci checkout with no artifact directory initially"
+    }
   ]
 }
