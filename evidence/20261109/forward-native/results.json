@@ -1,5 +1,5 @@
 {
-  "status": "local-native-and-consumer-verified-ci-pending",
+  "status": "development-prerelease-published-seven-ci-jobs-and-anonymous-public-consumer-verified",
   "version": "0.1.0-development",
   "dsh": "0.2.2-rc.1",
   "hostNode": "24.13.1",
@@ -144,7 +144,6 @@
   "productionTouched": false,
   "protectedDataAccessed": false,
   "remaining": [
-    "GitHub CI and release",
     "full forward-graph offline-lab capture",
     "QQ phone and native desktop acceptance"
   ],
@@ -156,5 +155,65 @@
       "reason": "all seven jobs reached pack, but a clean checkout has no artifacts directory",
       "fix": "prepack creates the directory; npm pack succeeded in the separate fresh npm-ci checkout with no artifact directory initially"
     }
-  ]
+  ],
+  "release": {
+    "url": "https://github.com/Soldsix/dsh-qq-forward/releases/tag/v0.1.0-development",
+    "sourceCommit": "c80f2bb6d6f8823b1954fdc303edb38439c31134",
+    "npmPublished": false
+  },
+  "ci": {
+    "run": 42595460022,
+    "conclusion": "success",
+    "jobs": 7
+  },
+  "packFixRuntimeParity": {
+    "passed": true,
+    "allRuntimeFilesIdenticalToNativeVerifiedArchive": true,
+    "changedFiles": [
+      "package/package.json"
+    ],
+    "candidateSha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5"
+  },
+  "finalLocalConsumer": {
+    "passed": true,
+    "archiveSha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5",
+    "installedFiles": 50,
+    "declarationInputs": 342,
+    "ancestorDependenciesBorrowed": false,
+    "strictDeclarationErrors": 0,
+    "runtime": {
+      "passed": true,
+      "applicationsStarted": 0,
+      "connectionsOpened": 0
+    },
+    "realModelCalls": 0,
+    "qqMessages": 0,
+    "bilibiliWrites": 0
+  },
+  "publicDownload": {
+    "passed": true,
+    "route": "public-url-curl-system-network",
+    "anonymous": true,
+    "githubAuthorizationSupplied": false,
+    "curlConfigDisabled": true,
+    "priorRoute": "Node fetch direct connect timeout",
+    "sha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5",
+    "bytes": 64617
+  },
+  "publicConsumer": {
+    "passed": true,
+    "archiveSha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5",
+    "installedFiles": 50,
+    "declarationInputs": 342,
+    "ancestorDependenciesBorrowed": false,
+    "strictDeclarationErrors": 0,
+    "runtime": {
+      "passed": true,
+      "applicationsStarted": 0,
+      "connectionsOpened": 0
+    },
+    "realModelCalls": 0,
+    "qqMessages": 0,
+    "bilibiliWrites": 0
+  }
 }

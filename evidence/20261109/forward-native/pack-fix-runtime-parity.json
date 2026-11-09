@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "allRuntimeFilesIdenticalToNativeVerifiedArchive": true,
+  "changedFiles": [
+    "package/package.json"
+  ],
+  "candidateSha256": "d5cc02d366d44bb0e7a2cb874c3de43a4397ebc44c0ec0fd6abd82ccccc8c5f5"
+}
