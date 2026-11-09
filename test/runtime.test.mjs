@@ -48,7 +48,7 @@ test('media capabilities may be installed after the core; a real media capacity 
 })
 
 test('storage capacities refuse admission without deleting earlier prepared outputs',options,async t=>{
- const f=await setup(t,{maxPrepared:1}),one=await f.runtime.prepare(generated('one'),signal());await assert.rejects(f.runtime.prepare(generated('two'),signal()),error=>error.code==='capacity');assert.equal(f.runtime.inspect(scope(),one.id).operationId,'one');await f.reopen();assert.equal(f.runtime.status().retained,1)
+ const f=await setup(t,{maxPrepared:1}),one=await f.runtime.prepare(generated('one'),signal());await assert.rejects(f.runtime.prepare(generated('two'),signal()),error=>error.code==='capacity');const media=mediaFixture(f,new Map([[aid('one'),await original()]]));await assert.rejects(f.runtime.prepare(generated('expensive',[node([{type:'image',attachmentId:aid('one')}])]),signal()),error=>error.code==='capacity');assert.equal(media.reads,0);assert.equal(f.runtime.inspect(scope(),one.id).operationId,'one');await f.reopen();assert.equal(f.runtime.status().retained,1)
 })
 
 test('incomplete source graphs never retain a deceptively successful partial preparation',options,async t=>{

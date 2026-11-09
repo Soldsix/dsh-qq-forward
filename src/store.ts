@@ -22,6 +22,8 @@ export class PreparedStore{
  status():{readonly retained:number|null;readonly pending:number;readonly bytes:number;readonly fault:boolean}{if(this.fault)return{retained:null,pending:this.pending,bytes:this.bytes,fault:true};try{return{retained:this.table.size,pending:this.pending,bytes:this.bytes,fault:false}}catch(error){this.fault=true;return{retained:null,pending:this.pending,bytes:this.bytes,fault:true}}}
  /** @param id - retained prepared identity. @returns immutable native-domain snapshot, or undefined. */
  get(id:PreparedId):PreparedForward|undefined{if(this.closed)throw new ForwardError('closed');if(this.fault)throw new ForwardError('storage');try{return this.table.get(id)}catch(error){this.fault=true;throw new ForwardError('storage')}}
+ /** Reject known full retention before external IO; concurrent admissions still recheck inside the mutation queue. */
+ requireCapacity():void{if(this.closed||this.stopping)throw new ForwardError('closed');if(this.fault)throw new ForwardError('storage');let size:number;try{size=this.table.size}catch(error){this.fault=true;throw new ForwardError('storage')}if(size>=this.config.maxPrepared||this.bytes>=this.config.maxRetainedBytes)throw new ForwardError('capacity')}
  /** @param value - complete content after media originals were stored. @returns durable admission or an unchanged identical existing operation. */
  admit(value:PreparedForward):Promise<{readonly value:PreparedForward;readonly replayed:boolean}>{
   if(this.closed||this.stopping)return Promise.reject(new ForwardError('closed'));if(this.fault)return Promise.reject(new ForwardError('storage'));if(this.pending>=this.config.maxPendingMutations)return Promise.reject(new ForwardError('capacity'));this.pending++

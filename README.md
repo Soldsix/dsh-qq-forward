@@ -54,5 +54,6 @@ Indirect. There are no model tools or prompt changes in the core. Forwarded cont
 
 - The independent OneBot bridge, native owner page, offline-lab capture and fresh bundle-installation verification are pending. The optional durable delivery adapter has unit verification only. This candidate is not ready to replace production handling.
 - The core does not download arbitrary URLs. Original acquisition belongs to the scoped media provider; storage preserves the bytes it supplies without resizing or re-encoding.
+- Immutable attachments imported before a later cancellation or admission conflict may remain under native attachment ownership. This core never deletes shared originals; storage-owner retention management is separate.
 - Sender claims are retained for display only. Backend timestamps and transport-specific unsupported parts depend on the selected sender adapter.
 - Confirmed server receipts do not prove a QQ phone displayed a message. No real QQ, Bilibili write or model request has been made during these tests.

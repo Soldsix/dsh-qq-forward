@@ -55,6 +55,7 @@ export class ForwardRuntime{
   let request;try{request=prepareSchema.parse(value)}catch(error){throw new ForwardError('invalid')}
   const nodes=request.input.kind==='generated'?parseNodes(request.input.nodes,this.config):undefined,normalized={...request,input:request.input.kind==='generated'?{kind:'generated' as const,nodes}:request.input},requestFingerprint=fingerprint(normalized),id=preparedIdentity(request.scope,request.operationId),existing=this.store.get(id)
   if(existing){if(existing.requestFingerprint!==requestFingerprint)throw new ForwardError('conflict');return{id,replayed:true}}
+  this.store.requireCapacity()
   const registration=this.providers.get(accountKey(request.scope.account))
   return this.prepares.run(id,requestFingerprint,registration?.owner??'prepare',signal,async abort=>{
    const combined=AbortSignal.any([abort,this.lifetime.signal,...registration?[registration.lifetime.signal]:[]]),again=this.store.get(id);if(again){if(again.requestFingerprint!==requestFingerprint)throw new ForwardError('conflict');return{id,replayed:true}}
