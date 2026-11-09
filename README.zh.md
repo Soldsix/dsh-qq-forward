@@ -76,7 +76,7 @@ npm run check 执行严格 Host/Client 类型检查、行为测试和归档检�
 <a id="limitations"></a>
 ## 已知限制与待办
 
-- 独立离线实验室尚未实现完整转发图捕获。QQ 手机呈现与桌面原生 UI 仍需单独验收，原生 Web 页面测试不能替代。
+- [dsh-plugin-lab 0.3.0-development](https://github.com/Soldsix/dsh-plugin-lab/releases/tag/v0.3.0-development) 的可选 dsh-plugin-lab/forward 入口已支持在隔离 profile 验证完整转发来源、嵌套引用及原件映射。QQ 手机呈现与桌面原生 UI 仍需单独验收。
 - 核心不下载任意 URL、不缩放媒体、不删除记录、不提供 TTL 或数据迁移。范围绑定媒体提供者提供原件，原生存储保留完全相同字节。传输投送可能有独立协议限制。
 - 若在后续取消或入库冲突前已导入不可变附件，附件可能继续由原生附件服务保留；本包不删除共享原件。
 - 来源授权由提供者与调用者负责。仅准备输出不能保证恰好一次投送。不确定结果必须先核对再决定是否重试；服务端接纳不证明客户端已展示。

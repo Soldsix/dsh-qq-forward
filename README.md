@@ -76,7 +76,7 @@ Indirect. This bundle adds no model tool or prompt. Forwarded text, sender claim
 <a id="limitations"></a>
 ## Known Limitations and Deferred Work
 
-- Full forward-graph capture in the independent offline lab is not implemented. QQ phone rendering and desktop-native UI verification remain separate acceptance work. The native Web page does not prove either.
+- Full forward-graph capture is available through the optional dsh-plugin-lab/forward entry in [dsh-plugin-lab 0.3.0-development](https://github.com/Soldsix/dsh-plugin-lab/releases/tag/v0.3.0-development). It verifies nested sources, quotes and original mappings in an isolated profile. QQ phone rendering and desktop-native UI remain separate acceptance work.
 - The core does not download arbitrary URLs, resize media, delete records, enforce TTL or migrate data. A scoped media provider supplies originals; native storage retains exactly those bytes. Transport delivery may have separate protocol limits.
 - An immutable attachment imported before a later cancellation or admission conflict may remain under native attachment ownership. This package does not delete shared originals.
 - Source authorization belongs to the provider and caller. A prepared output alone does not guarantee exactly-once delivery. Confirm uncertain results before a retry; server acceptance does not prove client display.
