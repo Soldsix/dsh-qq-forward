@@ -1,0 +1,87 @@
+{
+  "name": "dsh-qq-forward",
+  "version": "0.1.0-development",
+  "description": "Scoped recursive forward documents and durable merged output for composable DSH messaging consumers.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": "0.2.2-rc.1"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json",
+    "./job-delivery": {
+      "types": "./dist/job-delivery.d.ts",
+      "import": "./dist/job-delivery.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "LICENSE",
+    "README.md",
+    "README.zh.md",
+    "README.i18n.yaml",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/schemastery": "~3.19.0",
+    "@deepseek-ai/dsh-brand": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-storage-domain": "0.2.2-rc.1",
+    "dsh-job-delivery": "0.2.0-development"
+  },
+  "peerDependenciesMeta": {
+    "dsh-job-delivery": {"optional": true}
+  },
+  "dependencies": {
+    "dsh-im-kit": "https://github.com/Soldsix/dsh-im-kit/releases/download/v0.2.1/dsh-im-kit-0.2.1.tgz",
+    "dsh-media-kit": "https://github.com/Soldsix/dsh-media-kit/releases/download/v0.2.0/dsh-media-kit-0.2.0.tgz",
+    "zod": "4.6.6",
+    "p-limit": "7.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-jobs-local": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-storage": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-storage-json": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-attachment-local": "0.2.2-rc.1",
+    "@types/node": "24.0.0",
+    "typescript": "5.9.3",
+    "yaml": "2.9.1",
+    "dsh-qq-onebot": "https://github.com/Soldsix/dsh-qq-onebot/releases/download/v0.3.0-development/dsh-qq-onebot-0.3.0-development.tgz",
+    "dsh-job-delivery": "https://github.com/Soldsix/dsh-job-delivery/releases/download/v0.2.0-development/dsh-job-delivery-0.2.0-development.tgz"
+  },
+  "overrides": {
+    "zod": "4.6.6",
+    "undici": "8.12.2",
+    "fflate": "0.8.3",
+    "@modelcontextprotocol/client": "2.3.0",
+    "dsh-im-kit": "$dsh-im-kit"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "check": "npm run typecheck && npm test && npm run verify",
+    "verify": "node scripts/verify-package.mjs",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Soldsix/dsh-qq-forward.git"
+  }
+}
